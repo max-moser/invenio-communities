@@ -3,7 +3,7 @@
 # This file is part of Invenio.
 # Copyright (C) 2016-2024 CERN.
 # Copyright (C) 2021 Graz University of Technology.
-# Copyright (C) 2021 TU Wien.
+# Copyright (C) 2021-2024 TU Wien.
 # Copyright (C) 2022 Northwestern University.
 #
 # Invenio is free software; you can redistribute it and/or modify it
@@ -16,6 +16,7 @@ from invenio_records_permissions.generators import (
     AnyUser,
     AuthenticatedUser,
     Disable,
+    DisableIfReadOnly,
     IfConfig,
     SystemProcess,
 )
@@ -42,7 +43,7 @@ class CommunityPermissionPolicy(BasePermissionPolicy):
     """Permissions for Community CRUD operations."""
 
     # Community
-    can_create = [AuthenticatedUser(), SystemProcess()]
+    can_create = [AuthenticatedUser(), SystemProcess(), DisableIfReadOnly()]
 
     can_read = [
         IfRestricted("visibility", then_=[CommunityMembers()], else_=[AnyUser()]),
@@ -56,18 +57,20 @@ class CommunityPermissionPolicy(BasePermissionPolicy):
         IfCommunityDeleted(then_=[UserManager, SystemProcess()], else_=can_read)
     ]
 
-    can_update = [CommunityOwners(), SystemProcess()]
+    can_update = [CommunityOwners(), SystemProcess(), DisableIfReadOnly()]
 
-    can_delete = [CommunityOwners(), SystemProcess()]
+    can_delete = [CommunityOwners(), SystemProcess(), DisableIfReadOnly()]
 
-    can_purge = [CommunityOwners(), SystemProcess()]
+    can_purge = [CommunityOwners(), SystemProcess(), DisableIfReadOnly()]
 
     can_manage_access = [
         IfConfig("COMMUNITIES_ALLOW_RESTRICTED", then_=can_update, else_=[]),
+        DisableIfReadOnly(),
     ]
 
     can_create_restricted = [
         IfConfig("COMMUNITIES_ALLOW_RESTRICTED", then_=can_create, else_=[]),
+        DisableIfReadOnly(),
     ]
 
     can_search = [AnyUser(), SystemProcess()]
@@ -78,7 +81,7 @@ class CommunityPermissionPolicy(BasePermissionPolicy):
 
     can_search_requests = [CommunityManagers(), CommunityCurators(), SystemProcess()]
 
-    can_rename = [CommunityOwners(), SystemProcess()]
+    can_rename = [CommunityOwners(), SystemProcess(), DisableIfReadOnly()]
 
     can_submit_record = [
         IfPolicyClosed(
@@ -92,6 +95,7 @@ class CommunityPermissionPolicy(BasePermissionPolicy):
                 ),
             ],
         ),
+        DisableIfReadOnly(),
     ]
 
     # who can include a record directly, without a review
@@ -101,6 +105,7 @@ class CommunityPermissionPolicy(BasePermissionPolicy):
             then_=[Disable()],
             else_=[CommunityCurators()],
         ),
+        DisableIfReadOnly(),
     ]
 
     can_members_add = [
@@ -108,17 +113,20 @@ class CommunityPermissionPolicy(BasePermissionPolicy):
         AllowedMemberTypes("group"),
         GroupsEnabled("group"),
         SystemProcess(),
+        DisableIfReadOnly(),
     ]
 
     can_members_invite = [
         CommunityManagersForRole(),
         AllowedMemberTypes("user", "email"),
         SystemProcess(),
+        DisableIfReadOnly(),
     ]
 
     can_members_manage = [
         CommunityManagers(),
         SystemProcess(),
+        DisableIfReadOnly(),
     ]
 
     can_members_search = [
@@ -145,6 +153,7 @@ class CommunityPermissionPolicy(BasePermissionPolicy):
     can_members_bulk_update = [
         CommunityMembers(),
         SystemProcess(),
+        DisableIfReadOnly(),
     ]
 
     can_members_bulk_delete = can_members_bulk_update
@@ -154,33 +163,34 @@ class CommunityPermissionPolicy(BasePermissionPolicy):
         CommunityManagersForRole(),
         CommunitySelfMember(),
         SystemProcess(),
+        DisableIfReadOnly(),
     ]
 
     # Ability to delete a single membership
     can_members_delete = can_members_update
 
-    can_invite_owners = [CommunityOwners(), SystemProcess()]
+    can_invite_owners = [CommunityOwners(), SystemProcess(), DisableIfReadOnly()]
 
     # Abilities for featured communities
     can_featured_search = [AnyUser(), SystemProcess()]
     can_featured_list = [Administration(), SystemProcess()]
-    can_featured_create = [Administration(), SystemProcess()]
-    can_featured_update = [Administration(), SystemProcess()]
-    can_featured_delete = [Administration(), SystemProcess()]
+    can_featured_create = [Administration(), SystemProcess(), DisableIfReadOnly()]
+    can_featured_update = [Administration(), SystemProcess(), DisableIfReadOnly()]
+    can_featured_delete = [Administration(), SystemProcess(), DisableIfReadOnly()]
 
     # Used to hide at the moment the `is_verified` field. It should be set to
     # correct permissions based on which the field will be exposed only to moderators
     can_moderate = [Disable()]
 
     # Permissions to crud community theming
-    can_set_theme = [SystemProcess()]
+    can_set_theme = [SystemProcess(), DisableIfReadOnly()]
     can_delete_theme = can_set_theme
 
     # Permissions to set if communities can have children
-    can_manage_children = [SystemProcess()]
+    can_manage_children = [SystemProcess(), DisableIfReadOnly()]
 
     # Permission for assinging a parent community
-    can_manage_parent = [Administration(), SystemProcess()]
+    can_manage_parent = [Administration(), SystemProcess(), DisableIfReadOnly()]
 
 
 def can_perform_action(community, context):
